@@ -1,0 +1,13 @@
+**/node_modules
+**/dist
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/venv
+**/.venv
+**/data
+**/*.db
+**/.jwt_secret
+**/.env
+.git
+*.zip

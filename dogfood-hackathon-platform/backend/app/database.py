@@ -1,0 +1,44 @@
+from datetime import datetime, timezone
+
+from sqlalchemy import create_engine, event
+from sqlalchemy.orm import DeclarativeBase, sessionmaker
+
+from .config import settings
+
+engine = create_engine(
+    settings.database_url,
+    connect_args={"check_same_thread": False},
+)
+
+
+@event.listens_for(engine, "connect")
+def _sqlite_pragmas(dbapi_connection, _record):
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA foreign_keys=ON")
+    cursor.close()
+
+
+SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+
+
+class Base(DeclarativeBase):
+    pass
+
+
+def utcnow() -> datetime:
+    """Naive UTC timestamp (SQLite has no timezone support)."""
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+def init_db() -> None:
+    from . import models  # noqa: F401  (register tables)
+
+    Base.metadata.create_all(bind=engine)

@@ -1,0 +1,17 @@
+services:
+  app:
+    build: .
+    image: dogfood-hackathon-platform:latest
+    ports:
+      - "8000:8000"
+    environment:
+      # Demo data is seeded only when the database is empty.
+      SEED_DEMO_DATA: "true"
+      # Optional: set JWT_SECRET to pin the signing key. If unset, one is
+      # generated on first start and stored in the data volume.
+    volumes:
+      - dogfood-data:/data
+    restart: unless-stopped
+
+volumes:
+  dogfood-data:
