@@ -1,12 +1,23 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Request
+<<<<<<< HEAD
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from .config import settings
 from .database import SessionLocal, init_db
 from .routers import admin, auth, judge, participant, results
+=======
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
+
+from .config import settings
+from .database import SessionLocal, init_db
+from .routers import admin, auth, export, judge, participant, results
+>>>>>>> 97e6bd8 (Initial hackathon submission)
 
 
 @asynccontextmanager
@@ -43,10 +54,24 @@ async def security_headers(request: Request, call_next):
 
 @app.get("/api/health", tags=["health"])
 def health():
+<<<<<<< HEAD
     return {"status": "ok"}
 
 
 for module in (auth, participant, judge, admin, results):
+=======
+    """Liveness plus a real read from the users table, so the Docker healthcheck
+    only reports healthy when the API can actually reach SQLite."""
+    try:
+        with SessionLocal() as db:
+            db.execute(text("SELECT 1 FROM users LIMIT 1"))
+    except SQLAlchemyError:
+        return JSONResponse(status_code=503, content={"status": "error", "detail": "Database unavailable."})
+    return {"status": "ok"}
+
+
+for module in (auth, participant, judge, admin, export, results):
+>>>>>>> 97e6bd8 (Initial hackathon submission)
     app.include_router(module.router)
 
 

@@ -1,5 +1,9 @@
 import { useState } from 'react'
+<<<<<<< HEAD
 import { api } from '../../api'
+=======
+import { api, download } from '../../api'
+>>>>>>> 97e6bd8 (Initial hackathon submission)
 import Leaderboard from '../../components/Leaderboard'
 import { Alert, Badge, Empty, fmtDate, LoadError, Loading, PageHeader, useAction, useLoad } from '../../components/ui'
 
@@ -128,6 +132,33 @@ export default function AdminResults() {
           <Empty title="Nothing calculated yet">Calculate results to preview the ranking.</Empty>
         )}
       </section>
+<<<<<<< HEAD
+=======
+
+      <section className="card">
+        <h2 className="card-title">Export data</h2>
+        <p className="muted">
+          The ranking as a spreadsheet, or a full snapshot of the event (teams, submissions, scores, results and
+          certificates). Password hashes are never included.
+        </p>
+        <div className="btn-row">
+          <button
+            className="btn"
+            disabled={action.busy}
+            onClick={() => action.run(() => download('/api/admin/export/results.csv', 'dogfood-results.csv'))}
+          >
+            Download results (CSV)
+          </button>
+          <button
+            className="btn"
+            disabled={action.busy}
+            onClick={() => action.run(() => download('/api/admin/export/event.json', 'dogfood-event-export.json'))}
+          >
+            Download full export (JSON)
+          </button>
+        </div>
+      </section>
+>>>>>>> 97e6bd8 (Initial hackathon submission)
     </>
   )
 }

@@ -1,0 +1,267 @@
+================================================================================
+ DOGFOOD HACKATHON PLATFORM - ACCEPTANCE REPORT
+================================================================================
+ Version        1.0.0
+ Report date    2026-09-28
+ License        Apache-2.0 (LICENSE, NOTICE)
+ Run            docker compose up --build      ->  http://localhost:8000
+ Tests          docker compose run --rm app pytest
+
+ Legend
+   [PASS]    Verified by actually running it, as described in the evidence.
+   [MANUAL]  Needs an action by the submitter (it can't be done from the
+             build environment). Exact steps are given.
+   [NOTE]    Context or a caveat about how something was verified.
+
+================================================================================
+ A. MANDATORY SUBMISSION REQUIREMENTS
+================================================================================
+
+ 1. Public GitHub repository ....................................... [MANUAL]
+    The repository is ready to push. A test `git add -A` on the working tree
+    (with node_modules, caches and videos present) staged only the source
+    files, and .gitignore excluded everything else. Publishing needs the
+    owner's GitHub account:
+      git init && git add -A && git commit -m "Dogfood Hackathon Platform"
+      git branch -M main
+      git remote add origin https://github.com/<you>/dogfood-hackathon-platform.git
+      git push -u origin main
+    Then set the repository visibility to Public on GitHub.
+
+ 2. OSI-approved open-source license ................................ [PASS]
+    LICENSE contains the full Apache License 2.0 text, word-for-word
+    identical to the SPDX reference text. It uses the choosealicense.com
+    layout, which GitHub's license detector matches. NOTICE credits the
+    bundled Archivo font (SIL OFL 1.1). package.json declares "Apache-2.0".
+
+ 3. Working implementation ........................................... [PASS]
+    The full lifecycle ran end to end in a real browser against the Docker
+    container (see section C, steps C4 and C5).
+
+ 4. `docker compose up` starts a seeded portal ....................... [PASS]
+    Starting from no built image and an empty volume, plain
+    `docker compose up -d` (no --build) built the image, started the
+    container, reached "(healthy)" in about 6 s, and served the seeded portal:
+      participants 5 (1 without a team), teams 2, submissions 2 (both
+      eligible), evaluations 1 completed + 1 pending, judges 1,
+      criteria 5 (100 points), draft ranking present.
+    All demo logins worked (admin, judge, participant, seeded members).
+    See [NOTE] E1 about the base images.
+
+ 5. acceptance-report.txt ............................................ [PASS]
+    This file.
+
+ 6. README.md ........................................................ [PASS]
+    Covers docker compose up --build, the seeded demo accounts, the
+    participant, judge and admin flows, the 5-minute lifecycle script,
+    testing, shutdown, reset, export/backup, and the license.
+
+ 7. ARCHITECTURE.md .................................................. [PASS]
+    Components (frontend, backend, database), request pipeline, lifecycle
+    data flow, connectivity, deployment, configuration, security model,
+    technical decisions with trade-offs, and the testing architecture.
+
+ 8. DATA-MODEL.md .................................................... [PASS]
+    ER diagram and field-by-field tables for all 10 tables, matching the
+    schema SQLite actually creates. Also covers JSON column shapes,
+    invariants, record lifecycles, seed data, and import/export paths.
+    Every command in the document was run and checked.
+
+ 9. JUDGING.md ....................................................... [PASS]
+    Judge assignment strategy, scoring method, score ranges, normalization,
+    aggregation and final score, ranking and ties, missing and incomplete
+    scores, the reasoning behind each choice, and which tests cover each
+    rule.
+
+10. Tests ............................................................ [PASS]
+    32 backend tests, all passing: locally (2.6 s) and inside the container
+    via `docker compose run --rm app pytest` (2.4 s). The optional browser
+    test e2e/demo_flow.py passes against the container with zero browser
+    console errors or warnings.
+
+11. 5-minute demo video (one complete event lifecycle) ............... [MANUAL]
+    Recorded. The file is dogfood-demo.mp4, delivered alongside the ZIP.
+    It's a captioned screen recording (no voice) made by e2e/record_demo.py
+    against a fresh seeded container. It shows one complete lifecycle:
+    team -> submission (ineligible, then fixed) -> judge assignment ->
+    scoring with live normalization -> draft ranking -> publish with the
+    pending-evaluation warning -> participant result -> certificate ->
+    public verification.
+    To do: upload it (YouTube, Vimeo or Drive), put the link in README.md
+    under "Demo video" and on the submission form. Adding a voice-over is
+    optional.
+
+================================================================================
+ B. FUNCTIONAL ACCEPTANCE CHECKLIST (P0)
+================================================================================
+
+  #  Item                                    Status  Evidence
+ --- --------------------------------------- ------- ----------------------------
+  1  Local login / authentication            [PASS]  test_login_*, e2e step 1
+  2  Roles: admin, participant, judge        [PASS]  test_roles_cannot_cross_over
+  3  Hackathon dashboard                     [PASS]  e2e screenshots 02, 06, 09
+  4  Team creation / joining                 [PASS]  test_create_team_and_join_*
+  5  Project submission                      [PASS]  test_good_submission_*
+  6  Basic eligibility validation            [PASS]  test_short_summary_*, e2e step 3
+  7  Judge assignment                        [PASS]  test_admin_assigns_judge_*
+  8  Judge scoring                           [PASS]  test_judge_scores_*, e2e step 5
+  9  Automatic total score                   [PASS]  raw_total asserted (64/100)
+ 10  Score normalization                     [PASS]  test_normalize_formula
+ 11  Final results / ranking                 [PASS]  test_multiple_judges_*
+ 12  Admin result publishing                 [PASS]  test_publish_blocks_on_pending_*
+ 13  Participant result viewing              [PASS]  test_full_participant_flow_*
+ 14  Basic certificate page                  [PASS]  e2e step 7, verify page
+ 15  Seed / demo data                        [PASS]  section A.4 counts
+ 16  Docker Compose                          [PASS]  section C1
+ 17  SQLite                                  [PASS]  /data/dogfood.db in volume
+ 18  README                                  [PASS]  section A.6
+ 19  Automated backend tests                 [PASS]  32/32
+
+ Critical lifecycle (a single run, both automated and in the browser):
+   Participant login -> create team -> submit -> eligibility check ->
+   admin assigns judge -> judge opens submission -> judge scores ->
+   normalization (86/100 -> 86.00) -> admin publishes -> participant sees
+   rank 1 / 86.00 -> certificate "Winner" -> public verification ..... [PASS]
+   (test_full_participant_flow_ends_with_result_and_certificate,
+    e2e/demo_flow.py)
+
+ Also present (P1 items that fit): submission filters, participant search,
+ removing a pending judge (reassignment), criteria editing with rubric
+ snapshots, unpublish, CSV/JSON export, printable certificate with public
+ verification.
+
+================================================================================
+ C. VERIFICATION LOG (what was actually run)
+================================================================================
+
+ C1  Fresh-machine start
+     The project was zipped the way it ships (no node_modules, caches or
+     data) and unzipped into an empty directory. The built image and build
+     cache were deleted. Then:
+        docker compose up -d
+     Result: image built (npm ci: 66 packages; vite build OK; pip: pinned
+     versions), container Started, status "Up 6 seconds (healthy)".
+
+ C2  Frontend <-> backend <-> database connectivity
+     GET /            -> the React app (<title>Dogfood Hackathon</title>)
+     GET /api/health  -> {"status":"ok"}  (the endpoint reads the users table)
+     A real fault was injected in the running container (users table
+     renamed): /api/health -> HTTP 503 {"status":"error",...}; after
+     restoring -> HTTP 200 {"status":"ok"}. The Docker HEALTHCHECK uses
+     this endpoint.
+
+ C3  Tests in the container
+     docker compose run --rm app pytest   ->  32 passed
+
+ C4  Full lifecycle in a real browser (Chromium, Playwright)
+     python e2e/demo_flow.py  ->  FLOW COMPLETE, no console errors.
+     Steps: login page -> participant creates team -> ineligible submission
+     (short summary) -> fixed, eligible -> admin assigns judge -> judge
+     scores 18/22/17/16/13 (live panel 86.00) -> admin calculates ->
+     publish warns about 1 pending -> publish anyway -> participant rank 1,
+     86.00 -> certificate -> print view -> public verify -> mobile layout.
+
+ C5  Exports after the lifecycle
+     results.csv:
+       1,Late Night Labs,Standup Bot,ranked,86.00,1,0,86.00,,yes
+       2,Byte Bandits,QueueLess Clinic,ranked,84.00,1,0,84.00,,yes
+       ,Null Pointers,FieldNote,not_ranked,,0,1,,No completed evaluations yet,yes
+     event.json: users 7, teams 3, submissions 3, assignments 3, results 3,
+     certificates 5, and no password hashes. The UI download buttons were
+     also checked: both files downloaded with the correct names and content.
+
+ C6  Offline operation
+     14 pages across all three roles were loaded with every non-localhost
+     request blocked: 0 external requests. The bundled Archivo font loaded.
+
+ C7  Backup and restore (DATA-MODEL.md section 7)
+     Backup via `docker compose cp` worked. Restore, as documented with the
+     chown step: writes succeeded afterwards (unpublish/publish HTTP 200).
+
+ C8  Security spot checks (from the previous release, code unchanged)
+     401 without a token; 403 across roles; judge-to-judge 404; raw and
+     URL-encoded path traversal returned index.html or 404, never files;
+     the container runs as uid 10001; the JWT secret file is 0600.
+
+================================================================================
+ D. TEST INVENTORY (32)
+================================================================================
+ test_flow.py
+   health / login ............ test_health, test_login_success_and_me,
+                               test_login_is_case_insensitive_on_email,
+                               test_login_wrong_password_and_unknown_email_look_the_same,
+                               test_register_always_creates_participant
+   teams ..................... test_create_team_and_join_with_invite_code,
+                               test_cannot_be_on_two_teams,
+                               test_cannot_join_team_whose_project_is_being_judged
+   submission / eligibility .. test_submission_requires_a_team,
+                               test_good_submission_is_eligible,
+                               test_short_summary_and_bad_link_are_ineligible,
+                               test_fixing_a_submission_makes_it_eligible
+   judge assignment .......... test_admin_assigns_judge_and_submission_locks,
+                               test_ineligible_submission_cannot_be_assigned,
+                               test_same_judge_cannot_be_assigned_twice
+   evaluation ................ test_judge_scores_and_normalized_score_is_stored,
+                               test_evaluation_rejects_out_of_range_and_missing_scores
+   scoring ................... test_normalize_formula,
+                               test_multiple_judges_are_averaged_and_ranked
+   publication / lifecycle ... test_publish_blocks_on_pending_unless_confirmed,
+                               test_full_participant_flow_ends_with_result_and_certificate,
+                               test_unpublish_revokes_certificates
+   authorization ............. test_unauthenticated_requests_are_rejected,
+                               test_roles_cannot_cross_over,
+                               test_judge_cannot_open_someone_elses_assignment
+ test_export_health.py
+   health .................... test_health_touches_the_database,
+                               test_health_reports_database_failure,
+                               test_health_fails_when_schema_is_missing
+   export .................... test_admin_exports_results_csv,
+                               test_csv_export_neutralizes_formula_injection,
+                               test_event_json_export_is_complete_and_has_no_secrets,
+                               test_exports_are_admin_only
+
+================================================================================
+ E. ENVIRONMENT NOTES AND WHAT STILL NEEDS A HUMAN
+================================================================================
+
+ E1 [NOTE] Base images. The build environment could run Docker but could
+    not reach Docker Hub (HTTP 403). The official python:3.12-slim and
+    node:20-slim images were therefore replaced by locally built stand-ins
+    with the same tags (Ubuntu 24.04 with Python 3.12.3 / Node 18.19). The
+    project's Dockerfile and docker-compose.yml ran UNCHANGED against them.
+    The official images themselves still need one run on a normal machine:
+        docker compose up --build
+    Expect a working app at http://localhost:8000 after the first build.
+
+ E2 [MANUAL] Docker Desktop on Windows/macOS was not available to test.
+    Linux Docker Engine 29 with Compose v2.40 was used.
+
+ E3 [MANUAL] Publish the GitHub repository (A.1) and upload the demo video
+    and add its link (A.11).
+
+================================================================================
+ F. ISSUES FOUND AND FIXED DURING THIS ACCEPTANCE PASS
+================================================================================
+ F1 docker-compose.yml set both `build:` and `image:`. On a fresh machine a
+    plain `docker compose up` could try to pull that tag from Docker Hub
+    first. The `image:` line was removed; Compose now builds when the image
+    is missing (verified in C1).
+ F2 /api/health did not touch the database, so it could not prove
+    connectivity. It now reads the users table and returns 503 on failure.
+    A plain "SELECT 1" was tried first and rejected: SQLite answers it
+    without reading the database file.
+ F3 The first draft of the restore instructions produced a root-owned
+    database that the unprivileged app couldn't write to (HTTP 500 on the
+    first write). A chown step was added and verified (C7).
+ F4 DATA-MODEL.md needed import/export paths, but the app had no export.
+    Added admin-only CSV and JSON export (API and UI), with CSV formula
+    injection protection. Covered by 4 new tests.
+
+================================================================================
+ G. KNOWN LIMITATIONS (by design for the MVP; see README)
+================================================================================
+ Single active hackathon; token in localStorage; no login rate limiting;
+ evaluations can't be reopened; links are format-checked, not fetched;
+ no email; no bulk import; no schema migrations (reset the volume after
+ model changes).
+================================================================================

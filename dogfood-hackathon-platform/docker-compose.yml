@@ -1,7 +1,10 @@
 services:
   app:
     build: .
+<<<<<<< HEAD
     image: dogfood-hackathon-platform:latest
+=======
+>>>>>>> 97e6bd8 (Initial hackathon submission)
     ports:
       - "8000:8000"
     environment:

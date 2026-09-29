@@ -51,3 +51,29 @@ export async function api(path, { method = 'GET', body } = {}) {
   }
   return data
 }
+<<<<<<< HEAD
+=======
+
+// Authenticated file download (a plain <a href> can't send the Bearer token).
+export async function download(path, filename) {
+  const token = getToken()
+  const res = await fetch(path, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+  if (!res.ok) {
+    let detail = null
+    try {
+      detail = (await res.json()).detail
+    } catch {
+      /* not JSON */
+    }
+    throw new Error(readableDetail(detail) || `Download failed (${res.status}).`)
+  }
+  const url = URL.createObjectURL(await res.blob())
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+>>>>>>> 97e6bd8 (Initial hackathon submission)

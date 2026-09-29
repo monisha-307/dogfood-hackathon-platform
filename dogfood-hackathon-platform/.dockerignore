@@ -11,3 +11,8 @@
 **/.env
 .git
 *.zip
+<<<<<<< HEAD
+=======
+**/e2e/screenshots
+**/e2e/video
+>>>>>>> 97e6bd8 (Initial hackathon submission)
